@@ -3,7 +3,7 @@ import dayjs from "dayjs"
 
 export async function insertRentals(req, res) {
     const { customerId, gameId, daysRented } = req.body
-    const rentDate = "2023-05-01"
+    const rentDate = dayjs().format("YYYY-MM-DD")
     const returnDate = null
     const delayFee = null
 
@@ -23,7 +23,7 @@ export async function insertRentals(req, res) {
 
         const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
 
-        if(gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
+        if (gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
 
 
         await db.query(`INSERT INTO rentals ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee") VALUES ($1, $2, $3, $4, $5, $6, $7);`,
@@ -45,14 +45,12 @@ export async function finalizeRentals(req, res) {
         if (rent.rows[0].returnDate !== null) return res.sendStatus(400)
 
         const date1 = dayjs(dateNow)
-        console.log(date1)
-        const lateDays = date1.diff(rent.rows[0].rentDate, 'day')
-        console.log(lateDays)
+        const dateExpire = dayjs(rent.rows[0].rentDate).add(rent.rows[0].daysRented, 'day')
+        const lateDays = date1.diff(dateExpire, 'day')
         const pricePerDay = rent.rows[0].originalPrice / rent.rows[0].daysRented
-        console.log(pricePerDay)
         const delayFee = lateDays * pricePerDay
 
-        await db.query(`UPDATE rentals SET "returnDate" = $1 WHERE id=$3;`, [dateNow, id])
+        await db.query(`UPDATE rentals SET "returnDate" = $1, "delayFee" = $2 WHERE id=$3;`, [dateNow, delayFee, id])
         res.sendStatus(200)
 
     } catch (err) {
