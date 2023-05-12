@@ -20,7 +20,6 @@ export async function insertRentals(req, res) {
         const stockTotal = gameChance.rows[0].stockTotal
         const originalPrice = daysRented * pricePerDay
 
-
         const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
 
         if (gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
@@ -46,9 +45,12 @@ export async function finalizeRentals(req, res) {
 
         const date1 = dayjs(dateNow)
         const dateExpire = dayjs(rent.rows[0].rentDate).add(rent.rows[0].daysRented, 'day')
-        const lateDays = date1.diff(dateExpire, 'day')
+        let lateDays = date1.diff(dateExpire, 'day')
+        console.log(lateDays)
         const pricePerDay = rent.rows[0].originalPrice / rent.rows[0].daysRented
+        if (lateDays < 0) { lateDays = 0 }
         const delayFee = lateDays * pricePerDay
+        console.log(delayFee)
 
         await db.query(`UPDATE rentals SET "returnDate" = $1, "delayFee" = $2 WHERE id=$3;`, [dateNow, delayFee, id])
         res.sendStatus(200)
