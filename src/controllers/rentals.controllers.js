@@ -3,7 +3,7 @@ import dayjs from "dayjs"
 
 export async function insertRentals(req, res) {
     const { customerId, gameId, daysRented } = req.body
-    const rentDate = dayjs().format("YYYY-MM-DD")
+    const rentDate = "2023-05-01"
     const returnDate = null
     const delayFee = null
 
@@ -21,9 +21,9 @@ export async function insertRentals(req, res) {
         const originalPrice = daysRented * pricePerDay
 
 
-        //const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
+        const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
 
-        //if(gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
+        if(gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
 
 
         await db.query(`INSERT INTO rentals ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee") VALUES ($1, $2, $3, $4, $5, $6, $7);`,
@@ -44,32 +44,36 @@ export async function finalizeRentals(req, res) {
 
         if (rent.rows[0].returnDate !== null) return res.sendStatus(400)
 
-        const date1 = dayjs(rent.rows[0].rentDate)
-        const lateDays = (date1.diff(dateNow, 'day'))
+        const date1 = dayjs(dateNow)
+        console.log(date1)
+        const lateDays = date1.diff(rent.rows[0].rentDate, 'day')
+        console.log(lateDays)
         const pricePerDay = rent.rows[0].originalPrice / rent.rows[0].daysRented
+        console.log(pricePerDay)
         const delayFee = lateDays * pricePerDay
 
-        await db.query(`UPDATE rentals SET "returnDate" = $1, "delayFee" = $2 WHERE id=$3;`, [dateNow, delayFee, id])
+        await db.query(`UPDATE rentals SET "returnDate" = $1 WHERE id=$3;`, [dateNow, id])
         res.sendStatus(200)
 
     } catch (err) {
         res.status(500).send(err.message)
     }
 }
-export async function deleteRentals(req,res){
+export async function deleteRentals(req, res) {
     const { id } = req.params
 
-    try{
+    try {
         const rent = await db.query(`SELECT * FROM rentals WHERE id=$1;`, [id])
         if (!rent.rows[0]) return res.sendStatus(404)
 
-        if(rent.rows[0].returnDate !== null) return res.sendStatus(400)
+
+        if (rent.rows[0].returnDate === null) return res.sendStatus(400)
 
         await db.query(`DELETE FROM rentals WHERE id=$1;`, [id])
         res.sendStatus(200)
 
 
-    }catch(err){
+    } catch (err) {
         res.status(500).send(err.message)
     }
 }
