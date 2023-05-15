@@ -24,9 +24,12 @@ export async function getRentals(req, res) {
         rentalsList.map(rent => (delete rent.customer_name))
         rentalsList.map(rent => (delete rent.game_name))
         rentalsList.map(rent => (rent.rentDate = dayjs(rent.rentDate).format('YYYY-MM-DD')))
-        if(rentalsList.returnDate !== null){
-            rentalsList.map(rent => (rent.returnDate = dayjs(rent.returnDate).format('YYYY-MM-DD')))
-        }
+        rentalsList.map(rent => {
+            if(rent.returnDate !== null){
+                rent.returnDate = dayjs(rent.returnDate).format('YYYY-MM-DD')
+            }})
+           // rentalsList.map(rent => (rent.returnDate = dayjs(rent.returnDate).format('YYYY-MM-DD')))
+       // }
 
         res.send(rentalsList)
 
@@ -56,9 +59,9 @@ export async function insertRentals(req, res) {
         const stockTotal = gameChance.rows[0].stockTotal
         const originalPrice = daysRented * pricePerDay
 
-        //const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
+        const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
 
-        //if (gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
+        if (gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
 
 
         await db.query(`INSERT INTO rentals ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee") VALUES ($1, $2, $3, $4, $5, $6, $7);`,
