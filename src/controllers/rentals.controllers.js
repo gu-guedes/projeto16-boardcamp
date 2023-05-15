@@ -1,5 +1,41 @@
 import { db } from "../database/database.config.js"
 import dayjs from "dayjs"
+export async function getRentals(req, res) {
+    try {
+        const rentals = await db.query(`SELECT rentals.*,
+        customers.name AS customer_name,
+        games.name AS game_name
+        FROM rentals
+        JOIN customers ON rentals."customerId" = customers.id
+        JOIN games ON rentals."gameId" = games.id;`)
+        const rentalsList = rentals.rows.map(rent => ({
+            ...rent,
+            customer: {
+                id: rent.customerId,
+                name: rent.customer_name
+            },
+            game: {
+                id: rent.gameId,
+                name: rent.game_name
+            }
+
+
+        }))
+        rentalsList.map(rent => (delete rent.customer_name))
+        rentalsList.map(rent => (delete rent.game_name))
+        rentalsList.map(rent => (rent.rentDate = dayjs(rent.rentDate).format('YYYY-MM-DD')))
+        if(rentalsList.returnDate !== null){
+            rentalsList.map(rent => (rent.returnDate = dayjs(rent.returnDate).format('YYYY-MM-DD')))
+        }
+
+        res.send(rentalsList)
+
+
+
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+}
 
 export async function insertRentals(req, res) {
     const { customerId, gameId, daysRented } = req.body
@@ -20,9 +56,9 @@ export async function insertRentals(req, res) {
         const stockTotal = gameChance.rows[0].stockTotal
         const originalPrice = daysRented * pricePerDay
 
-        const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
+        //const gameAvailable = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1;`, [gameId])
 
-        if (gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
+        //if (gameAvailable.rows.length >= stockTotal) return res.sendStatus(400)
 
 
         await db.query(`INSERT INTO rentals ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee") VALUES ($1, $2, $3, $4, $5, $6, $7);`,
